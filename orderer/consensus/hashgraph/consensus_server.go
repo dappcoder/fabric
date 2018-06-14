@@ -15,7 +15,7 @@ var(
 
 type ordererFeedServer struct{}
 
-func New() orderer.OrdererFeedServer {
+func New() orderer.OrdererServiceServer {
 	return &ordererFeedServer{}
 }
 

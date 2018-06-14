@@ -101,28 +101,27 @@ func (ch *chain) WaitReady() error {
 func (ch *chain) Order(env *cb.Envelope, configSeq uint64) error {
 	conn, err := grpc.Dial(*hashgraphNodeAddr, grpc.WithInsecure())
 
-	log.Println("Dialed")
-
 	if err != nil {
-		log.Fatalf("fail to dial: %v", err)
+		log.Fatalf("Could not connect to Hashgraph node: %v", err)
 	}
+
+	log.Println("Connected to Hashgraph node", *hashgraphNodeAddr)
+
 	defer conn.Close()
 
-	client := orderer.NewHashgraphFeedClient(conn)
+	hgClient := orderer.NewHashgraphServiceClient(conn)
+	log.Println("Created Hashgraph client")
+	hgCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
-	log.Println("Created Client")
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	//msgResp, msgErr := client.Create(ctx, &orderer.Transaction{Payload: env.Payload})
-	msgResp, msgErr := client.Create(ctx, &orderer.Transaction{Payload: []byte("Hello from Hyperledger Fabric Ordering Service!")})
+	msgResp, msgErr := hgClient.Create(hgCtx, &orderer.Transaction{Payload: env.GetPayload()})
 
 	if msgErr != nil {
-		log.Fatal("Could not send message")
+		log.Println("Could not send message")
+	} else {
+		log.Println("Sent message. Response: ", msgResp.Accepted)
 	}
-
-	log.Println("Sent message. Response: ", msgResp.Accepted)
 
 	return nil
 }
@@ -220,8 +219,8 @@ func (ch *chain) hashgraph() error {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	s := grpc.NewServer()
-	orderer.RegisterOrdererFeedServer(s, hashgraph.New())
-	// Register reflection service on gRPC server.
+	orderer.RegisterOrdererServiceServer(s, hashgraph.New())
+	// TODO Register reflection service on gRPC server.
 	//reflection.Register(s)
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
