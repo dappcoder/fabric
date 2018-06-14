@@ -20,15 +20,26 @@ import (
 	"fmt"
 	"time"
 
+	"context"
+	"flag"
+	"log"
+
 	"github.com/hyperledger/fabric/common/flogging"
 	"github.com/hyperledger/fabric/orderer/consensus"
 	cb "github.com/hyperledger/fabric/protos/common"
+	"github.com/hyperledger/fabric/protos/orderer"
 	"github.com/op/go-logging"
+	"google.golang.org/grpc"
+	"net"
+	"github.com/hyperledger/fabric/orderer/consensus/hashgraph"
 )
 
 const pkgLogID = "orderer/consensus/solo"
 
-var logger *logging.Logger
+var (
+	logger            *logging.Logger
+	hashgraphNodeAddr = flag.String("hashgraph_node_addr", "127.0.0.1:51204", "Hashgraph node address and port")
+)
 
 func init() {
 	logger = flogging.MustGetLogger(pkgLogID)
@@ -70,6 +81,7 @@ func newChain(support consensus.ConsenterSupport) *chain {
 
 func (ch *chain) Start() {
 	go ch.main()
+	go ch.hashgraph()
 }
 
 func (ch *chain) Halt() {
@@ -87,15 +99,32 @@ func (ch *chain) WaitReady() error {
 
 // Order accepts normal messages for ordering
 func (ch *chain) Order(env *cb.Envelope, configSeq uint64) error {
-	select {
-	case ch.sendChan <- &message{
-		configSeq: configSeq,
-		normalMsg: env,
-	}:
-		return nil
-	case <-ch.exitChan:
-		return fmt.Errorf("Exiting")
+	conn, err := grpc.Dial(*hashgraphNodeAddr, grpc.WithInsecure())
+
+	log.Println("Dialed")
+
+	if err != nil {
+		log.Fatalf("fail to dial: %v", err)
 	}
+	defer conn.Close()
+
+	client := orderer.NewHashgraphFeedClient(conn)
+
+	log.Println("Created Client")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	//msgResp, msgErr := client.Create(ctx, &orderer.Transaction{Payload: env.Payload})
+	msgResp, msgErr := client.Create(ctx, &orderer.Transaction{Payload: []byte("Hello from Hyperledger Fabric Ordering Service!")})
+
+	if msgErr != nil {
+		log.Fatal("Could not send message")
+	}
+
+	log.Println("Sent message. Response: ", msgResp.Accepted)
+
+	return nil
 }
 
 // Configure accepts configuration update messages for ordering
@@ -182,4 +211,21 @@ func (ch *chain) main() {
 			return
 		}
 	}
+}
+
+
+func (ch *chain) hashgraph() error {
+	lis, err := net.Listen("tcp", "127.0.0.1:52204")
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+	s := grpc.NewServer()
+	orderer.RegisterOrdererFeedServer(s, hashgraph.New())
+	// Register reflection service on gRPC server.
+	//reflection.Register(s)
+	if err := s.Serve(lis); err != nil {
+		log.Fatalf("failed to serve: %v", err)
+	}
+
+	return nil
 }

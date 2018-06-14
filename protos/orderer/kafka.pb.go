@@ -34,7 +34,7 @@ var KafkaMessageRegular_Class_value = map[string]int32{
 func (x KafkaMessageRegular_Class) String() string {
 	return proto.EnumName(KafkaMessageRegular_Class_name, int32(x))
 }
-func (KafkaMessageRegular_Class) EnumDescriptor() ([]byte, []int) { return fileDescriptor2, []int{1, 0} }
+func (KafkaMessageRegular_Class) EnumDescriptor() ([]byte, []int) { return fileDescriptor3, []int{1, 0} }
 
 // KafkaMessage is a wrapper type for the messages
 // that the Kafka-based orderer deals with.
@@ -49,7 +49,7 @@ type KafkaMessage struct {
 func (m *KafkaMessage) Reset()                    { *m = KafkaMessage{} }
 func (m *KafkaMessage) String() string            { return proto.CompactTextString(m) }
 func (*KafkaMessage) ProtoMessage()               {}
-func (*KafkaMessage) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{0} }
+func (*KafkaMessage) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{0} }
 
 type isKafkaMessage_Type interface {
 	isKafkaMessage_Type()
@@ -201,7 +201,7 @@ type KafkaMessageRegular struct {
 func (m *KafkaMessageRegular) Reset()                    { *m = KafkaMessageRegular{} }
 func (m *KafkaMessageRegular) String() string            { return proto.CompactTextString(m) }
 func (*KafkaMessageRegular) ProtoMessage()               {}
-func (*KafkaMessageRegular) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{1} }
+func (*KafkaMessageRegular) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{1} }
 
 func (m *KafkaMessageRegular) GetPayload() []byte {
 	if m != nil {
@@ -240,7 +240,7 @@ type KafkaMessageTimeToCut struct {
 func (m *KafkaMessageTimeToCut) Reset()                    { *m = KafkaMessageTimeToCut{} }
 func (m *KafkaMessageTimeToCut) String() string            { return proto.CompactTextString(m) }
 func (*KafkaMessageTimeToCut) ProtoMessage()               {}
-func (*KafkaMessageTimeToCut) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{2} }
+func (*KafkaMessageTimeToCut) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{2} }
 
 func (m *KafkaMessageTimeToCut) GetBlockNumber() uint64 {
 	if m != nil {
@@ -260,7 +260,7 @@ type KafkaMessageConnect struct {
 func (m *KafkaMessageConnect) Reset()                    { *m = KafkaMessageConnect{} }
 func (m *KafkaMessageConnect) String() string            { return proto.CompactTextString(m) }
 func (*KafkaMessageConnect) ProtoMessage()               {}
-func (*KafkaMessageConnect) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{3} }
+func (*KafkaMessageConnect) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{3} }
 
 func (m *KafkaMessageConnect) GetPayload() []byte {
 	if m != nil {
@@ -294,7 +294,7 @@ type KafkaMetadata struct {
 func (m *KafkaMetadata) Reset()                    { *m = KafkaMetadata{} }
 func (m *KafkaMetadata) String() string            { return proto.CompactTextString(m) }
 func (*KafkaMetadata) ProtoMessage()               {}
-func (*KafkaMetadata) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{4} }
+func (*KafkaMetadata) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{4} }
 
 func (m *KafkaMetadata) GetLastOffsetPersisted() int64 {
 	if m != nil {
@@ -326,9 +326,9 @@ func init() {
 	proto.RegisterEnum("orderer.KafkaMessageRegular_Class", KafkaMessageRegular_Class_name, KafkaMessageRegular_Class_value)
 }
 
-func init() { proto.RegisterFile("orderer/kafka.proto", fileDescriptor2) }
+func init() { proto.RegisterFile("orderer/kafka.proto", fileDescriptor3) }
 
-var fileDescriptor2 = []byte{
+var fileDescriptor3 = []byte{
 	// 476 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x93, 0xd1, 0x6a, 0xdb, 0x30,
 	0x14, 0x86, 0xe3, 0x26, 0x4d, 0xe8, 0x49, 0xd6, 0x05, 0x85, 0x42, 0x60, 0x5b, 0xe9, 0x0c, 0x63,
