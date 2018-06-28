@@ -1,17 +1,5 @@
 /*
-Copyright IBM Corp. 2016 All Rights Reserved.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-                 http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+SPDX-License-Identifier: Apache-2.0
 */
 
 package solo
@@ -24,14 +12,15 @@ import (
 	"flag"
 	"log"
 
+	"net"
+
 	"github.com/hyperledger/fabric/common/flogging"
 	"github.com/hyperledger/fabric/orderer/consensus"
 	cb "github.com/hyperledger/fabric/protos/common"
 	"github.com/hyperledger/fabric/protos/orderer"
 	"github.com/op/go-logging"
+	ctx "golang.org/x/net/context"
 	"google.golang.org/grpc"
-	"net"
-	"github.com/hyperledger/fabric/orderer/consensus/hashgraph"
 )
 
 const pkgLogID = "orderer/consensus/solo"
@@ -135,7 +124,7 @@ func (ch *chain) Configure(config *cb.Envelope, configSeq uint64) error {
 	}:
 		return nil
 	case <-ch.exitChan:
-		return fmt.Errorf("Exiting")
+		return fmt.Errorf("exiting")
 	}
 }
 
@@ -212,14 +201,13 @@ func (ch *chain) main() {
 	}
 }
 
-
 func (ch *chain) hashgraph() error {
 	lis, err := net.Listen("tcp", "127.0.0.1:52204")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	s := grpc.NewServer()
-	orderer.RegisterOrdererServiceServer(s, hashgraph.New())
+	orderer.RegisterOrdererServiceServer(s, NewOrdererServiceServer(ch))
 	// TODO Register reflection service on gRPC server.
 	//reflection.Register(s)
 	if err := s.Serve(lis); err != nil {
@@ -227,4 +215,26 @@ func (ch *chain) hashgraph() error {
 	}
 
 	return nil
+}
+
+type ordererFeedServer struct {
+	ch *chain
+}
+
+func NewOrdererServiceServer(ch *chain) orderer.OrdererServiceServer {
+	return &ordererFeedServer{ch}
+}
+
+func (s *ordererFeedServer) Consensus(ctx ctx.Context, in *orderer.ConsensusTransaction) (*orderer.ConsensusResponse, error) {
+	logger.Info("HELLO From Hashgraph!")
+
+	select {
+	case s.ch.sendChan <- &message{
+		configSeq: uint64(in.Id),
+		normalMsg: &cb.Envelope{
+			Payload: in.Transaction,
+		},
+	}:
+		return &orderer.ConsensusResponse{Accepted: true}, nil
+	}
 }
