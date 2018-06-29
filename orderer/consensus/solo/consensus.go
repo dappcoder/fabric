@@ -202,16 +202,23 @@ func (ch *chain) main() {
 }
 
 func (ch *chain) hashgraph() error {
-	lis, err := net.Listen("tcp", "127.0.0.1:52204")
-	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
-	}
-	s := grpc.NewServer()
-	orderer.RegisterOrdererServiceServer(s, NewOrdererServiceServer(ch))
-	// TODO Register reflection service on gRPC server.
-	//reflection.Register(s)
-	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
+	log.Println("CHAIN: ", ch.support.ChainID())
+
+	if ch.support.ChainID() == "mychannel" {
+		addressAndPort := "127.0.0.1:52204"
+		log.Println("Trying to listen on", addressAndPort)
+		lis, err := net.Listen("tcp", addressAndPort)
+		if err != nil {
+			log.Fatalf("failed to listen: %v", err)
+		}
+		log.Println("Listening on", addressAndPort)
+		s := grpc.NewServer()
+		orderer.RegisterOrdererServiceServer(s, NewOrdererServiceServer(ch))
+		// TODO Register reflection service on gRPC servger.
+		//reflection.Register(s)
+		if err := s.Serve(lis); err != nil {
+			log.Fatalf("failed to serve: %v", err)
+		}
 	}
 
 	return nil
