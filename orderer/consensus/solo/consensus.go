@@ -27,7 +27,7 @@ const pkgLogID = "orderer/consensus/solo"
 
 var (
 	logger            *logging.Logger
-	hashgraphNodeAddr = flag.String("hashgraph_node_addr", "swirlds-node01:51204", "Hashgraph node address and port")
+	hashgraphNodeAddr = flag.String("hashgraph_node_addr", "10.5.0.4:51204", "Hashgraph node address and port")
 )
 
 func init() {
@@ -107,7 +107,7 @@ func (ch *chain) Order(env *cb.Envelope, configSeq uint64) error {
 	msgResp, msgErr := hgClient.Create(hgCtx, &orderer.Transaction{Payload: env.GetPayload()})
 
 	if msgErr != nil {
-		log.Println("Could not send message")
+		log.Println("Could not send message!", msgErr)
 	} else {
 		log.Println("Sent message. Response: ", msgResp.Accepted)
 	}
@@ -234,7 +234,8 @@ func NewOrdererServiceServer(ch *chain) orderer.OrdererServiceServer {
 }
 
 func (s *ordererFeedServer) Consensus(ctx ctx.Context, in *orderer.ConsensusTransaction) (*orderer.ConsensusResponse, error) {
-	logger.Info("HELLO From Hashgraph!")
+	logger.Info("Got consensus transaction from Hashgraph. Bytes:", len(in.Transaction))
+	logger.Info(string(in.Transaction[:]))
 
 	select {
 	case s.ch.sendChan <- &message{
