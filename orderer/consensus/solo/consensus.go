@@ -27,7 +27,7 @@ const pkgLogID = "orderer/consensus/solo"
 
 var (
 	logger            *logging.Logger
-	hashgraphNodeAddr = flag.String("hashgraph_node_addr", "127.0.0.1:51204", "Hashgraph node address and port")
+	hashgraphNodeAddr = flag.String("hashgraph_node_addr", "swirlds-node01:51204", "Hashgraph node address and port")
 )
 
 func init() {
@@ -205,7 +205,8 @@ func (ch *chain) hashgraph() error {
 	log.Println("CHAIN: ", ch.support.ChainID())
 
 	if ch.support.ChainID() == "mychannel" {
-		addressAndPort := "127.0.0.1:52204"
+		// TODO remove hardcoded host
+		addressAndPort := "orderer.example.com:52204"
 		log.Println("Trying to listen on", addressAndPort)
 		lis, err := net.Listen("tcp", addressAndPort)
 		if err != nil {
