@@ -1,5 +1,17 @@
 /*
-SPDX-License-Identifier: Apache-2.0
+Copyright IBM Corp. 2016 All Rights Reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+                 http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 */
 
 package solo
@@ -8,27 +20,15 @@ import (
 	"fmt"
 	"time"
 
-	"context"
-	"flag"
-	"log"
-
-	"net"
-
 	"github.com/hyperledger/fabric/common/flogging"
 	"github.com/hyperledger/fabric/orderer/consensus"
 	cb "github.com/hyperledger/fabric/protos/common"
-	"github.com/hyperledger/fabric/protos/orderer"
 	"github.com/op/go-logging"
-	ctx "golang.org/x/net/context"
-	"google.golang.org/grpc"
 )
 
 const pkgLogID = "orderer/consensus/solo"
 
-var (
-	logger            *logging.Logger
-	hashgraphNodeAddr = flag.String("hashgraph_node_addr", "swirlds-node01:51204", "Hashgraph node address and port")
-)
+var logger *logging.Logger
 
 func init() {
 	logger = flogging.MustGetLogger(pkgLogID)
@@ -70,7 +70,6 @@ func newChain(support consensus.ConsenterSupport) *chain {
 
 func (ch *chain) Start() {
 	go ch.main()
-	go ch.hashgraph()
 }
 
 func (ch *chain) Halt() {
@@ -88,31 +87,15 @@ func (ch *chain) WaitReady() error {
 
 // Order accepts normal messages for ordering
 func (ch *chain) Order(env *cb.Envelope, configSeq uint64) error {
-	conn, err := grpc.Dial(*hashgraphNodeAddr, grpc.WithInsecure())
-
-	if err != nil {
-		log.Fatalf("Could not connect to Hashgraph node: %v", err)
+	select {
+	case ch.sendChan <- &message{
+		configSeq: configSeq,
+		normalMsg: env,
+	}:
+		return nil
+	case <-ch.exitChan:
+		return fmt.Errorf("Exiting")
 	}
-
-	log.Println("Connected to Hashgraph node", *hashgraphNodeAddr)
-
-	defer conn.Close()
-
-	hgClient := orderer.NewHashgraphServiceClient(conn)
-	log.Println("Created Hashgraph client")
-	hgCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-
-	defer cancel()
-
-	msgResp, msgErr := hgClient.Create(hgCtx, &orderer.Transaction{Payload: env.GetPayload()})
-
-	if msgErr != nil {
-		log.Println("Could not send message")
-	} else {
-		log.Println("Sent message. Response: ", msgResp.Accepted)
-	}
-
-	return nil
 }
 
 // Configure accepts configuration update messages for ordering
@@ -124,7 +107,7 @@ func (ch *chain) Configure(config *cb.Envelope, configSeq uint64) error {
 	}:
 		return nil
 	case <-ch.exitChan:
-		return fmt.Errorf("exiting")
+		return fmt.Errorf("Exiting")
 	}
 }
 
@@ -198,51 +181,5 @@ func (ch *chain) main() {
 			logger.Debugf("Exiting")
 			return
 		}
-	}
-}
-
-func (ch *chain) hashgraph() error {
-	log.Println("CHAIN: ", ch.support.ChainID())
-
-	if ch.support.ChainID() == "mychannel" {
-		// TODO remove hardcoded host
-		addressAndPort := "orderer.example.com:52204"
-		log.Println("Trying to listen on", addressAndPort)
-		lis, err := net.Listen("tcp", addressAndPort)
-		if err != nil {
-			log.Fatalf("failed to listen: %v", err)
-		}
-		log.Println("Listening on", addressAndPort)
-		s := grpc.NewServer()
-		orderer.RegisterOrdererServiceServer(s, NewOrdererServiceServer(ch))
-		// TODO Register reflection service on gRPC servger.
-		//reflection.Register(s)
-		if err := s.Serve(lis); err != nil {
-			log.Fatalf("failed to serve: %v", err)
-		}
-	}
-
-	return nil
-}
-
-type ordererFeedServer struct {
-	ch *chain
-}
-
-func NewOrdererServiceServer(ch *chain) orderer.OrdererServiceServer {
-	return &ordererFeedServer{ch}
-}
-
-func (s *ordererFeedServer) Consensus(ctx ctx.Context, in *orderer.ConsensusTransaction) (*orderer.ConsensusResponse, error) {
-	logger.Info("HELLO From Hashgraph!")
-
-	select {
-	case s.ch.sendChan <- &message{
-		configSeq: uint64(in.Id),
-		normalMsg: &cb.Envelope{
-			Payload: in.Transaction,
-		},
-	}:
-		return &orderer.ConsensusResponse{Accepted: true}, nil
 	}
 }
