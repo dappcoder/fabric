@@ -26,8 +26,8 @@ const pkgLogID = "orderer/consensus/hashgraph"
 
 var (
 	logger            *logging.Logger
-	hashgraphNodeAddr = flag.String("hashgraph_node_addr", "192.168.1.123:51204", "Hashgraph node address and port")
-	//hashgraphNodeAddr = flag.String("hashgraph_node_addr", "swirlds-node01:51204", "Hashgraph node address and port")
+	// TODO Parameterize (at runtime or deploy time) the swrilds node host and port
+	hashgraphNodeAddr = flag.String("hashgraph_node_addr", "swirlds-node01:51204", "Hashgraph node address and port")
 	ordererServiceServer OrdererFeedServer
 )
 
@@ -38,8 +38,7 @@ func init() {
 
 
 func initGrpc() {
-	// TODO remove hardcoded host
-	//addressAndPort := "localhost:52204"
+	// TODO Get orderer host from config and parameterize gRPC port.
 	addressAndPort := "orderer.example.com:52204"
 	log.Println("Trying to listen on", addressAndPort)
 	lis, err := net.Listen("tcp", addressAndPort)
